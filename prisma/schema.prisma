@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(cuid())
+  username    String
+  email       String    @unique
+  password    String
+  credits     Int       @default(3)
+  paidCredits Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  roadmap     Roadmap[]
+}
+
+model Subject {
+  id      String    @id @default(cuid())
+  name    String    @unique
+  roadmap Roadmap[]
+}
+
+model Roadmap {
+  id           String       @id @default(cuid())
+  subject      Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId    String
+  user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String?
+  goal         String
+  duration     Int
+  durationUnit DurationUnit
+  milestone    Milestone[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Milestone {
+  id        String   @id @default(cuid())
+  index     Int
+  name      String
+  roadmap   Roadmap  @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  roadmapId String
+  action    Action[]
+}
+
+model Action {
+  id           String           @id @default(cuid())
+  milestone    Milestone        @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  milestoneId  String
+  name         String
+  description  String?
+  duration     Int
+  durationUnit DurationUnit
+  deadline     DateTime?
+  isCompleted  Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  resource     ActionResource[]
+}
+
+model ActionResource {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  url         String
+  action      Action  @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  actionId    String
+}
+
+enum DurationUnit {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
