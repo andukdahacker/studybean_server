@@ -15,6 +15,8 @@ RUN npm run build
 
 FROM node:lts-alpine as production
 
+ARG DATABASE_URL
+
 WORKDIR /app
 
 COPY package*.json ./
