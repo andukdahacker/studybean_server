@@ -22,6 +22,7 @@ COPY ./prisma ./prisma
 COPY --from=build /app/build ./build
 
 RUN npm install --only=production
+RUN npm prisma migrate deploy
 RUN npx prisma generate
 
 ENV NODE_ENV=production

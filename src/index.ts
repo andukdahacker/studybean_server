@@ -10,6 +10,7 @@ import middie from "@fastify/middie";
 import prismaPlugin from "./plugins/prisma_plugin";
 import firebasePlugin from "./plugins/firebase_plugin";
 import Env from "./env";
+import { env } from "process";
 
 const build = async () => {
   try {
@@ -26,6 +27,9 @@ const build = async () => {
       schema: {
         type: "object",
         properties: {
+          NODE_ENV: {
+            type: "string",
+          },
           PORT: {
             type: "number",
           },
@@ -48,7 +52,16 @@ const build = async () => {
             type: "string",
           },
         },
-        required: ["PORT", "DATABASE_URL", "JWT_SECRET"],
+        required: [
+          "NODE_ENV",
+          "PORT",
+          "DATABASE_URL",
+          "JWT_SECRET",
+          "GOOGLE_GEMINI_API_KEY",
+          "FIREBASE_PROJECT_ID",
+          "FIREBASE_CLIENT_EMAIL",
+          "FIREBASE_PRIVATE_KEY",
+        ],
       },
     });
 
@@ -140,7 +153,12 @@ const build = async () => {
 
 const start = async (server: FastifyInstance) => {
   try {
-    await server.listen({ port: 3000 });
+    const env = server.getEnvs<Env>();
+    const isProd = env.NODE_ENV === "production";
+    await server.listen({
+      port: env.PORT,
+      host: isProd ? "0.0.0.0" : "localhost",
+    });
   } catch (err) {
     server.log.error(err);
     process.exit(1);

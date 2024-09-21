@@ -6,6 +6,7 @@ type Env = {
   FIREBASE_PROJECT_ID: string;
   FIREBASE_PRIVATE_KEY: string;
   FIREBASE_CLIENT_EMAIL: string;
+  NODE_ENV: "development" | "production";
 };
 
 export default Env;
