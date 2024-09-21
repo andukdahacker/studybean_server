@@ -119,6 +119,8 @@ class GoogleGeminiService {
       jsonFormat
     )}`;
 
+    console.log("prompt", prompt);
+
     const result = await this.model.generateContent(prompt);
     return result;
   }

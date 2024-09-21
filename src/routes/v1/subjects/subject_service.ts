@@ -5,10 +5,10 @@ import { CreateSubjectInput } from "./dto/create_subject.input";
 class SubjectService {
   constructor(private readonly db: PrismaClient) {}
 
-  async getSubject(id: string) {
+  async getSubject(name: string) {
     return await this.db.subject.findUnique({
       where: {
-        id,
+        name: name,
       },
     });
   }

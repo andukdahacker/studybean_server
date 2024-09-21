@@ -13,6 +13,7 @@ import Env from "./env";
 
 const build = async () => {
   try {
+    console.log("Starting server...");
     const server: FastifyInstance<Server, IncomingMessage, ServerResponse> =
       Fastify({
         logger: true,
@@ -40,34 +41,14 @@ const build = async () => {
           FIREBASE_PROJECT_ID: {
             type: "string",
           },
-          FIREBASE_PRIVATE_KEY_ID: {
-            type: "string",
-          },
           FIREBASE_CLIENT_EMAIL: {
             type: "string",
           },
           FIREBASE_PRIVATE_KEY: {
             type: "string",
           },
-          FIREBASE_CLIENT_ID: {
-            type: "string",
-          },
-          FIREBASE_AUTH_URI: {
-            type: "string",
-          },
-          FIREBASE_TOKEN_URI: {
-            type: "string",
-          },
-          FIREBASE_AUTH_PROVIDER_X509_CERT_URL: {
-            type: "string",
-          },
-          FIREBASE_CLIENT_X509_CERT_URL: {
-            type: "string",
-          },
-          FIREBASE_UNIVERSE_DOMAIN: {
-            type: "string",
-          },
         },
+        required: ["PORT", "DATABASE_URL", "JWT_SECRET"],
       },
     });
 
@@ -135,19 +116,11 @@ const build = async () => {
 
     server.register(firebasePlugin, {
       credential: {
-        type: "service_account",
-        project_id: env.FIREBASE_PROJECT_ID,
-        private_key_id: env.FIREBASE_PRIVATE_KEY_ID,
-        client_email: env.FIREBASE_CLIENT_EMAIL,
-        private_key: env.FIREBASE_PRIVATE_KEY
+        projectId: env.FIREBASE_PROJECT_ID,
+        clientEmail: env.FIREBASE_CLIENT_EMAIL,
+        privateKey: env.FIREBASE_PRIVATE_KEY
           ? env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
           : undefined,
-        client_id: env.FIREBASE_CLIENT_ID,
-        auth_uri: env.FIREBASE_AUTH_URI,
-        token_uri: env.FIREBASE_TOKEN_URI,
-        auth_provider_x509_cert_url: env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
-        client_x509_cert_url: env.FIREBASE_CLIENT_X509_CERT_URL,
-        universe_domain: env.FIREBASE_UNIVERSE_DOMAIN,
       },
     });
 

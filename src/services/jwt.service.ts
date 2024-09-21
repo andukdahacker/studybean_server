@@ -9,7 +9,7 @@ class JwtService {
         payload,
         this.secret,
         {
-          expiresIn: "1h",
+          expiresIn: "1y",
         },
         (err: Error | null, token: string | undefined) => {
           if (err) {

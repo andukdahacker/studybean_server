@@ -1,4 +1,4 @@
-import { TSchema, Type } from "@sinclair/typebox";
+import { TSchema, Type, Static } from "@sinclair/typebox";
 import { Nullable } from "./nullable";
 
 const BaseResponseSchema = <T extends TSchema>(schema: T) =>
@@ -6,6 +6,12 @@ const BaseResponseSchema = <T extends TSchema>(schema: T) =>
     data: schema,
     message: Type.String(),
   });
+
+const NoDataResponseSchema = Type.Object({
+  message: Type.String(),
+});
+
+type NoDataResponse = Static<typeof NoDataResponseSchema>;
 
 const BaseReponseErrorSchema = Type.Object({
   error: Type.String(),
@@ -29,6 +35,8 @@ const PaginatedBaseReponseSchema = <T extends TSchema>(schema: T) =>
   });
 
 export {
+  NoDataResponseSchema,
+  NoDataResponse,
   BaseResponseSchema,
   BaseReponseErrorSchema,
   PaginatedBaseReponseSchema,

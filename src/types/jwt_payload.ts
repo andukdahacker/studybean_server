@@ -1,3 +1,0 @@
-interface JwtPayload {
-  id: string;
-}

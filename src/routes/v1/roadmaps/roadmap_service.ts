@@ -1,17 +1,49 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { CreateRoadmapInput } from "./dto/create_roadmap.input";
 import { GenerateMilestonesResponse } from "../../../services/google_gemini.service";
+import { GetManyRoadmapInput } from "./dto/get_many_roadmap.input";
+import { AddMilestoneInput } from "./dto/add_milestone.input";
+import { UpdateActionInput } from "./dto/update_action.input";
+import { UpdateMilestoneInput } from "./dto/update_milestone.input";
+import { CreateActionInput } from "./dto/create_action.input";
+import { CreateResourceInput } from "./dto/create_resource.input";
+import { UpdateResourceInput } from "./dto/update_resource.input";
 
 class RoadmapService {
   constructor(private readonly db: PrismaClient) {}
 
-  async getRoadmap(id: string) {
+  async getManyRoadmaps(input: GetManyRoadmapInput, userId: string) {
+    return await this.db.roadmap.findMany({
+      where: {
+        userId: userId,
+      },
+      take: input.take,
+      cursor: input.cursor ? { id: input.cursor } : undefined,
+      skip: input.cursor ? 1 : undefined,
+      include: {
+        milestone: {
+          include: {
+            action: {
+              include: {
+                resource: true,
+              },
+            },
+          },
+        },
+        subject: true,
+        user: true,
+      },
+    });
+  }
+
+  async getRoadmapWithId(id: string) {
     return await this.db.roadmap.findUnique({
       where: {
         id,
       },
       include: {
         subject: true,
+        user: true,
         milestone: {
           include: {
             action: {
@@ -75,24 +107,27 @@ class RoadmapService {
     await Promise.all(milestones);
   }
 
-  async createRoadmap(input: CreateRoadmapInput) {
+  async createRoadmap(input: CreateRoadmapInput, userId: string) {
     return await this.db.roadmap.create({
       data: {
         subject: {
-          connect: {
-            id: input.subjectId,
+          connectOrCreate: {
+            create: {
+              name: input.subjectName,
+            },
+            where: {
+              name: input.subjectName,
+            },
           },
         },
         goal: input.goal,
         duration: input.duration,
         durationUnit: input.durationUnit,
-        user: input.userId
-          ? {
-              connect: {
-                id: input.userId,
-              },
-            }
-          : undefined,
+        user: {
+          connect: {
+            id: userId,
+          },
+        },
       },
       include: {
         subject: true,
@@ -105,6 +140,168 @@ class RoadmapService {
             },
           },
         },
+      },
+    });
+  }
+
+  async createMilestone(input: AddMilestoneInput) {
+    return await this.db.milestone.create({
+      data: {
+        name: input.name,
+        index: input.index,
+        roadmap: {
+          connect: {
+            id: input.roadmapId,
+          },
+        },
+      },
+      include: {
+        action: {
+          include: {
+            resource: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getMilestoneById(id: string) {
+    return await this.db.milestone.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        action: {
+          include: {
+            resource: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteMilestone(id: string) {
+    await this.db.milestone.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async updateAction(input: UpdateActionInput) {
+    const action = await this.db.action.update({
+      where: {
+        id: input.id,
+      },
+      data: {
+        name: input.name ? input.name : undefined,
+        description: input.description ? input.description : undefined,
+        isCompleted: input.isCompleted == null ? undefined : input.isCompleted,
+      },
+      include: {
+        resource: true,
+      },
+    });
+
+    return action;
+  }
+
+  async updateMilestone(input: UpdateMilestoneInput) {
+    const milestone = await this.db.milestone.update({
+      where: {
+        id: input.id,
+      },
+      data: {
+        name: input.name ? input.name : undefined,
+      },
+      include: {
+        action: {
+          include: {
+            resource: true,
+          },
+        },
+      },
+    });
+
+    return milestone;
+  }
+
+  async createAction(input: CreateActionInput) {
+    const action = await this.db.action.create({
+      data: {
+        name: input.name,
+        description: input.description,
+        duration: input.duration,
+        durationUnit: input.durationUnit,
+        milestone: {
+          connect: {
+            id: input.milestoneId,
+          },
+        },
+      },
+      include: {
+        resource: true,
+      },
+    });
+
+    return action;
+  }
+
+  async getActionById(id: string) {
+    return await this.db.action.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        resource: true,
+      },
+    });
+  }
+
+  async deleteAction(id: string) {
+    await this.db.action.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async createResource(input: CreateResourceInput) {
+    const resource = await this.db.actionResource.create({
+      data: {
+        title: input.title,
+        description: input.description,
+        url: input.url,
+        action: {
+          connect: {
+            id: input.actionId,
+          },
+        },
+      },
+    });
+
+    return resource;
+  }
+
+  async updateResource(input: UpdateResourceInput) {
+    const resource = await this.db.actionResource.update({
+      where: {
+        id: input.id,
+      },
+      data: {
+        title: input.title ? input.title : undefined,
+        description: input.description ? input.description : undefined,
+        url: input.url ? input.url : undefined,
+      },
+    });
+
+    return resource;
+  }
+
+  async deleteResource(id: string) {
+    await this.db.actionResource.delete({
+      where: {
+        id,
       },
     });
   }

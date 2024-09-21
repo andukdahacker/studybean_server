@@ -12,6 +12,7 @@ declare module "fastify" {
 }
 
 async function firebasePlugin(fastify: FastifyInstance, options: any) {
+  console.log("options", options);
   if (!fastify.hasDecorator("firebase")) {
     const firebaseApp = initializeApp({
       credential: admin.credential.cert(options.credential),
@@ -20,6 +21,8 @@ async function firebasePlugin(fastify: FastifyInstance, options: any) {
 
     fastify.decorate("firebase", firebaseApp);
     fastify.decorate("firebaseAuth", firebaseAuth);
+  } else {
+    throw new Error("Firebase already registered");
   }
 }
 
