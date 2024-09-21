@@ -15,10 +15,7 @@ RUN npm run build
 
 FROM node:lts-alpine as production
 
-ARG DATABASE_URL
 ARG PORT
-
-RUN echo ${DATABASE_URL}
 
 WORKDIR /app
 
@@ -27,7 +24,6 @@ COPY ./prisma ./prisma
 COPY --from=build /app/build ./build
 
 RUN npm install --only=production
-RUN npx prisma migrate deploy
 RUN npx prisma generate
 
 ENV NODE_ENV=production
