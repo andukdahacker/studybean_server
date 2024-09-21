@@ -14,7 +14,7 @@ import { env } from "process";
 
 const build = async () => {
   try {
-    console.log("Starting server...");
+    console.log("Starting server...", process.env.NODE_ENV);
     const server: FastifyInstance<Server, IncomingMessage, ServerResponse> =
       Fastify({
         logger: true,
