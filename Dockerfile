@@ -16,6 +16,9 @@ RUN npm run build
 FROM node:lts-alpine as production
 
 ARG DATABASE_URL
+ARG PORT
+
+RUN echo ${DATABASE_URL}
 
 WORKDIR /app
 
@@ -29,6 +32,6 @@ RUN npx prisma generate
 
 ENV NODE_ENV=production
 
-EXPOSE 8080
+EXPOSE ${PORT}
 
 CMD [ "npm", "start" ]
