@@ -14,8 +14,11 @@ async function prismaPlugin(fastify: FastifyInstance, options: any) {
       log: ["error"],
     });
 
+    fastify.log.info("Prisma connection established");
+
     fastify.decorate("db", client);
     fastify.addHook("onClose", async (server) => {
+      fastify.log.info("Prisma connection closed");
       await server.db.$disconnect();
     });
   } else {
