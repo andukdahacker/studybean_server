@@ -1,6 +1,4 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import JwtService from "../services/jwt.service";
-import Env from "../env";
+import { FastifyReply, FastifyRequest } from "fastify";
 import { JwtPayload } from "jsonwebtoken";
 
 declare module "fastify" {
@@ -9,13 +7,7 @@ declare module "fastify" {
   }
 }
 
-async function authMiddleware(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  secret: string
-) {
-  const jwtService = new JwtService(secret);
-
+async function authMiddleware(request: FastifyRequest, reply: FastifyReply) {
   if (!request.headers.authorization) {
     return reply.status(401).send({
       error: "Unauthorized",
@@ -32,7 +24,9 @@ async function authMiddleware(
   }
 
   try {
-    const decoded = await jwtService.verify<JwtPayload & { id: string }>(token);
+    const decoded = await request.jwtService.verify<
+      JwtPayload & { id: string }
+    >(token);
     if (!decoded) {
       return reply.status(401).send({
         error: "Unauthorized",

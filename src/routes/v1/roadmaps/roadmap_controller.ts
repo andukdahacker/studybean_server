@@ -28,13 +28,17 @@ import { CreateResourceInput } from "./dto/create_resource.input";
 import { CreateResourceResponse } from "./dto/create_resource.response";
 import { UpdateResourceInput } from "./dto/update_resource.input";
 import { UpdateResourceResponse } from "./dto/update_resource.response";
+import { UploadLocalRoadmapInput } from "./dto/upload_local_roadmap.input";
+import { UploadLocalRoadmapResponse } from "./dto/upload_local_roadmap.response";
+import UserService from "../users/user_service";
 
 class RoadmapController {
   constructor(
     private roadmapService: RoadmapService,
     private geminiService: GoogleGeminiService,
-    private subjectService: SubjectService
-  ) {}
+    private subjectService: SubjectService,
+    private userService: UserService,
+  ) { }
 
   async getRoadmap(
     request: FastifyRequest<{ Params: GetRoadmapInput }>,
@@ -121,108 +125,89 @@ class RoadmapController {
   }
 
   async generateWithAI(
-    request: FastifyRequest<{
-      Body: CreateRoadmapInput;
-    }>,
-    reply: FastifyReply
+    input: CreateRoadmapInput,
+    userId: string,
   ): Promise<CreateRoadmapWithAiResponse> {
-    try {
-      const roadmap = this.roadmapService.createRoadmap(
-        request.body,
-        request.jwtPayload.id
-      );
+    const user = await this.userService.getUserById(userId);
 
-      if (!roadmap) {
-        return reply.status(400).send({
-          error: "Cannot create roadmap",
-          message: "Internal server error",
-        });
-      }
-
-      const subject = await this.subjectService.getSubject(
-        request.body.subjectName
-      );
-
-      if (!subject) {
-        return reply.status(400).send({
-          error: "Cannot get subject",
-          message: "Internal server error",
-        });
-      }
-
-      const generatedResult = this.geminiService.generateRoadmap({
-        duration: request.body.duration,
-        durationUnit: request.body.durationUnit,
-        subjectName: subject.name,
-        goal: request.body.goal,
-      });
-
-      const [roadmapResponse, generatedResultResponse] = await Promise.all([
-        roadmap,
-        generatedResult,
-      ]);
-
-      if (!generatedResultResponse) {
-        return reply.status(400).send({
-          error: "Cannot generate roadmap",
-          message: "Internal server error",
-        });
-      }
-
-      if (!roadmapResponse) {
-        return reply.status(400).send({
-          error: "Cannot create roadmap",
-          message: "Internal server error",
-        });
-      }
-
-      if (!generatedResultResponse.response) {
-        return reply.status(400).send({
-          error: "Cannot generate roadmap",
-          message: "Internal server error",
-        });
-      }
-
-      const textResult = generatedResultResponse.response.text();
-
-      if (!textResult) {
-        return reply.status(400).send({
-          error: "Cannot generate roadmap",
-          message: "Internal server error",
-        });
-      }
-
-      const parsedJson: GenerateMilestonesResponse = JSON.parse(textResult);
-
-      await this.roadmapService.updateRoadmapWithMilestones(
-        roadmapResponse.id,
-        parsedJson
-      );
-
-      const roadmapUpdated = await this.roadmapService.getRoadmapWithId(
-        roadmapResponse.id
-      );
-
-      if (!roadmapUpdated) {
-        return reply.status(400).send({
-          error: "Cannot get roadmap",
-          message: "Internal server error",
-        });
-      }
-
-      return {
-        data: {
-          roadmap: roadmapUpdated,
-        },
-        message: "Roadmap created successfully",
-      };
-    } catch (error) {
-      reply.log.error(error);
-      return reply.status(500).send({
-        error: "Roadmap creation failed",
-        message: "Internal server error",
-      });
+    if (!user) {
+      throw new Error('Cannot find user');
     }
+
+    if (user.credits < 1 && user.paidCredits < 1) {
+      throw new Error('Not enough credits')
+    }
+
+    const roadmap = await this.roadmapService.createRoadmap(
+      input,
+      userId,
+    );
+
+    if (!roadmap) {
+      throw new Error('Cannot create roadmap');
+    }
+
+    const subject = await this.subjectService.getSubject(
+      input.subjectName
+    );
+
+    if (!subject) {
+      throw new Error('Cannot get subject');
+    }
+
+    const generatedResult = this.geminiService.generateRoadmap({
+      duration: input.duration,
+      durationUnit: input.durationUnit,
+      subjectName: subject.name,
+      goal: input.goal,
+    });
+
+    const [roadmapResponse, generatedResultResponse] = await Promise.all([
+      roadmap,
+      generatedResult,
+    ]);
+
+    if (!generatedResultResponse) {
+      throw new Error('Cannot generate roadmap');
+    }
+
+    if (!roadmapResponse) {
+      throw new Error('Cannot generate roadmap');
+    }
+
+    if (!generatedResultResponse.response) {
+      throw new Error('Cannot generate roadmap');
+    }
+
+    const textResult = generatedResultResponse.response.text();
+
+    if (!textResult) {
+      throw new Error('Cannot generate roadmap')
+    }
+
+    const parsedJson: GenerateMilestonesResponse = JSON.parse(textResult);
+
+    await this.roadmapService.updateRoadmapWithMilestones(
+      roadmapResponse.id,
+      parsedJson
+    );
+
+    const roadmapUpdated = await this.roadmapService.getRoadmapWithId(
+      roadmapResponse.id
+    );
+
+    if (!roadmapUpdated) {
+      throw new Error('Cannot generate roadmap')
+    }
+
+    await this.userService.decreaseCredits(userId);
+
+    return {
+      data: {
+        roadmap: roadmapUpdated,
+      },
+      message: "Roadmap created successfully",
+    };
   }
 
   async createRoadmap(
@@ -438,6 +423,20 @@ class RoadmapController {
 
     return {
       message: "Resource deleted successfully",
+    };
+  }
+
+  async uploadLocalRoadmap(
+    input: UploadLocalRoadmapInput,
+    userId: string
+  ): Promise<UploadLocalRoadmapResponse> {
+    const roadmap = await this.roadmapService.uploadLocalRoadmap(input, userId);
+
+    return {
+      data: {
+        roadmaps: roadmap,
+      },
+      message: "Roadmap uploaded successfully",
     };
   }
 }

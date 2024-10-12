@@ -8,6 +8,7 @@ import { UpdateMilestoneInput } from "./dto/update_milestone.input";
 import { CreateActionInput } from "./dto/create_action.input";
 import { CreateResourceInput } from "./dto/create_resource.input";
 import { UpdateResourceInput } from "./dto/update_resource.input";
+import { UploadLocalRoadmapInput } from "./dto/upload_local_roadmap.input";
 
 class RoadmapService {
   constructor(private readonly db: PrismaClient) {}
@@ -304,6 +305,62 @@ class RoadmapService {
         id,
       },
     });
+  }
+
+  async uploadLocalRoadmap(input: UploadLocalRoadmapInput, userId: string) {
+    const createRoadmap = input.roadmaps.map(async (roadmap) => {
+      const newRoadmap = await this.db.roadmap.create({
+        data: {
+          subject: {
+            connectOrCreate: {
+              create: {
+                name: roadmap.subject?.name ?? "",
+              },
+              where: {
+                name: roadmap.subject?.name ?? "",
+              },
+            },
+          },
+          duration: roadmap.duration,
+          durationUnit: roadmap.durationUnit,
+          goal: roadmap.goal,
+          user: {
+            connect: {
+              id: userId,
+            },
+          },
+          createdAt: roadmap.createdAt,
+          id: roadmap.id,
+          milestone: {
+            createMany: {
+              data:
+                roadmap.milestone?.map((milestone) => ({
+                  name: milestone.name,
+                  index: milestone.index,
+                  id: milestone.id,
+                })) ?? [],
+            },
+          },
+        },
+        include: {
+          subject: true,
+          milestone: {
+            include: {
+              action: {
+                include: {
+                  resource: true,
+                },
+              },
+            },
+          },
+          user: true,
+        },
+      });
+
+      return newRoadmap;
+    });
+
+    return await Promise.all(createRoadmap);
   }
 }
 

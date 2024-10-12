@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRequest } from "fastify";
+import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
   CreateUserInput,
   CreateUserInputSchema,
@@ -13,13 +13,6 @@ import Env from "../../../env";
 import { LoginUserResponseSchema } from "./dto/login_user.response";
 
 async function userRoutes(fastify: FastifyInstance, options: Object) {
-  fastify.register(userPrivateRoutes);
-  fastify.register(userPublicRoutes);
-}
-
-async function userPrivateRoutes(fastify: FastifyInstance, options: Object) {}
-
-async function userPublicRoutes(fastify: FastifyInstance, options: Object) {
   const userService = new UserService(fastify.db, fastify.firebaseAuth);
   const jwtSecret = fastify.getEnvs<Env>().JWT_SECRET;
   const jwtService = new JwtService(jwtSecret);

@@ -10,18 +10,26 @@ import middie from "@fastify/middie";
 import prismaPlugin from "./plugins/prisma_plugin";
 import firebasePlugin from "./plugins/firebase_plugin";
 import Env from "./env";
-import { env } from "process";
+import JwtService from "./services/jwt.service";
+import fastifyCron from 'fastify-cron';
+import refillCredits from "./jobs/refill_credits";
+
+declare module "fastify" {
+  interface FastifyRequest {
+    jwtService: JwtService;
+  }
+}
 
 const build = async () => {
   try {
     console.log("Starting server...", process.env.NODE_ENV);
-    const server: FastifyInstance<Server, IncomingMessage, ServerResponse> =
+    const app: FastifyInstance<Server, IncomingMessage, ServerResponse> =
       Fastify({
         logger: true,
       });
 
     //env
-    await server.register(fastifyEnv, {
+    await app.register(fastifyEnv, {
       dotenv: true,
       confKey: "config",
       schema: {
@@ -66,15 +74,15 @@ const build = async () => {
     });
 
     //cors
-    server.register(cors, {
+    app.register(cors, {
       origin: "*",
     });
 
     //helmet
-    server.register(helmet);
+    app.register(helmet);
 
     //swagger
-    server.register(swagger, {
+    app.register(swagger, {
       openapi: {
         openapi: "3.0.0",
         info: {
@@ -101,17 +109,17 @@ const build = async () => {
     });
 
     //swagger-ui
-    server.register(swaggerUi, {
+    app.register(swaggerUi, {
       routePrefix: "/documentation",
       uiConfig: {
         docExpansion: "full",
         deepLinking: false,
       },
       uiHooks: {
-        onRequest: function (request, reply, next) {
+        onRequest: function(request, reply, next) {
           next();
         },
-        preHandler: function (request, reply, next) {
+        preHandler: function(request, reply, next) {
           next();
         },
       },
@@ -123,11 +131,11 @@ const build = async () => {
       transformSpecificationClone: true,
     });
 
-    server.register(middie);
+    app.register(middie);
 
-    const env = server.getEnvs<Env>();
+    const env = app.getEnvs<Env>();
 
-    server.register(firebasePlugin, {
+    app.register(firebasePlugin, {
       credential: {
         projectId: env.FIREBASE_PROJECT_ID,
         clientEmail: env.FIREBASE_CLIENT_EMAIL,
@@ -137,30 +145,48 @@ const build = async () => {
       },
     });
 
-    server.register(prismaPlugin);
+    app.register(prismaPlugin);
+
+    app.addHook("onRequest", async (request, _reply) => {
+      request.jwtService = new JwtService(env.JWT_SECRET);
+    });
 
     //routes
-    server.register(v1Routes, {
+    app.register(v1Routes, {
       prefix: "/api/v1",
     });
 
-    return server;
+    app.register(fastifyCron, {
+      jobs: [
+        {
+          cronTime: '0 0 * * *',
+          onTick: async (server) => {
+            await refillCredits(server);
+          }
+        }
+      ]
+    })
+
+    return app;
   } catch (err) {
     console.log("Error building server: ", err);
     process.exit(1);
   }
 };
 
-const start = async (server: FastifyInstance) => {
+const start = async (app: FastifyInstance) => {
   try {
-    const env = server.getEnvs<Env>();
+    const env = app.getEnvs<Env>();
     const isProd = env.NODE_ENV === "production";
-    await server.listen({
+    await app.listen({
       port: env.PORT,
       host: isProd ? "0.0.0.0" : "localhost",
     });
+
+    app.cron.startAllJobs();
+
   } catch (err) {
-    server.log.error(err);
+    app.log.error(err);
     process.exit(1);
   }
 };

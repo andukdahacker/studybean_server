@@ -6,7 +6,6 @@ import { CreateUserResponse } from "./dto/create_user.response";
 import { LoginUserInput } from "./dto/login_user.input";
 import JwtService from "../../../services/jwt.service";
 import { LoginUserResponse } from "./dto/login_user.response";
-
 class UserController {
   constructor(
     private readonly userService: UserService,

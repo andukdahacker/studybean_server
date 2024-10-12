@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyRequest } from "fastify";
+import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import RoadmapController from "./roadmap_controller";
 import RoadmapService from "./roadmap_service";
 import {
@@ -81,13 +81,20 @@ import {
   DeleteResourceInput,
   DeleteResourceInputSchema,
 } from "./dto/delete_resource.input";
+import {
+  UploadLocalRoadmapInput,
+  UploadLocalRoadmapInputSchema,
+} from "./dto/upload_local_roadmap.input";
+import { UploadLocalRoadmapResponseSchema } from "./dto/upload_local_roadmap.response";
+import UserService from "../users/user_service";
 
 async function roadmapRoutes(fastify: FastifyInstance, opts: any) {
   const geminiKey = fastify.getEnvs<Env>().GOOGLE_GEMINI_API_KEY;
   const roadmapController = new RoadmapController(
     new RoadmapService(fastify.db),
     new GoogleGeminiService(geminiKey),
-    new SubjectService(fastify.db)
+    new SubjectService(fastify.db),
+    new UserService(fastify.db, fastify.firebaseAuth)
   );
 
   fastify.register(roadmapPrivateRoutes);
@@ -107,22 +114,19 @@ async function roadmapRoutes(fastify: FastifyInstance, opts: any) {
       request: FastifyRequest<{
         Body: GenerateMilestonesInput;
       }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.generateMilestonesWithAI(request, reply),
   });
 }
 
 async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
   const geminiKey = fastify.getEnvs<Env>().GOOGLE_GEMINI_API_KEY;
-  const jwtSecret = fastify.getEnvs<Env>().JWT_SECRET;
+
   const roadmapController = new RoadmapController(
     new RoadmapService(fastify.db),
     new GoogleGeminiService(geminiKey),
-    new SubjectService(fastify.db)
-  );
-
-  fastify.addHook("onRequest", async (request, reply) =>
-    authMiddleware(request, reply, jwtSecret)
+    new SubjectService(fastify.db),
+    new UserService(fastify.db, fastify.firebaseAuth)
   );
 
   fastify.get("/:id", {
@@ -188,12 +192,20 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{
         Body: CreateRoadmapInput;
       }>,
-      reply
-    ) => roadmapController.generateWithAI(request, reply),
+      _reply: FastifyReply,
+    ) => roadmapController.generateWithAI(request.body, request.jwtPayload.id),
+    errorHandler: async (error, _request, reply) => {
+      reply.log.error(error);
+
+      return reply.status(500).send({
+        message: 'Internal server error', error: error,
+      })
+    }
   });
 
   fastify.post("/addMilestone", {
@@ -438,6 +450,32 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
       request: FastifyRequest<{ Params: DeleteResourceInput }>,
       reply
     ) => roadmapController.deleteResource(request.params.id),
+  });
+
+  fastify.post("/uploadLocalRoadmaps", {
+    schema: {
+      description: "Upload local roadmaps",
+      tags: ["roadmaps"],
+      body: UploadLocalRoadmapInputSchema,
+      response: {
+        200: UploadLocalRoadmapResponseSchema,
+        400: BaseReponseErrorSchema,
+        500: BaseReponseErrorSchema,
+      },
+    },
+    preHandler: [authMiddleware],
+    handler: async (
+      request: FastifyRequest<{ Body: UploadLocalRoadmapInput }>,
+      reply: FastifyReply
+    ) =>
+      roadmapController.uploadLocalRoadmap(request.body, request.jwtPayload.id),
+    errorHandler: (error, request, reply) => {
+      reply.log.error(error);
+      return reply.status(500).send({
+        error: "Upload local roadmaps failed",
+        message: "Internal server error",
+      });
+    },
   });
 }
 
