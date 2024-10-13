@@ -140,7 +140,8 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
-    handler: (request: FastifyRequest<{ Params: GetRoadmapInput }>, reply) =>
+    preHandler: [authMiddleware],
+    handler: (request: FastifyRequest<{ Params: GetRoadmapInput }>, reply: FastifyReply) =>
       roadmapController.getRoadmap(request, reply),
   });
 
@@ -155,9 +156,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: (
       request: FastifyRequest<{ Querystring: GetManyRoadmapInput }>,
-      reply
+      reply: FastifyReply,
     ) => roadmapController.getRoadmapList(request, reply),
   });
 
@@ -172,12 +174,13 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: (
       request: FastifyRequest<{
         Body: CreateRoadmapInput;
         Querystring: { withAI: boolean };
       }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.createRoadmap(request, reply),
   });
 
@@ -219,9 +222,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Body: AddMilestoneInput }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.addMilestone(request, reply),
   });
 
@@ -236,9 +240,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Params: GetMilestoneInput }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.getMilestone(request, reply),
   });
 
@@ -253,9 +258,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Params: DeleteMilestoneInput }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.deleteMilestone(request, reply),
   });
 
@@ -270,9 +276,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Body: UpdateMilestoneInput }>,
-      reply
+      reply: FastifyReply
     ): Promise<UpdateMilestoneResponse> => {
       try {
         return await roadmapController.updateMilestone(request.body);
@@ -297,9 +304,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Body: CreateActionInput }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.createAction(request.body),
     errorHandler: (error, request, reply) => {
       reply.log.error(error);
@@ -323,9 +331,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Params: { id: string } }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.getAction(request.params.id),
     errorHandler: (error, request, reply) => {
       reply.log.error(error);
@@ -347,9 +356,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Body: UpdateActionInput }>,
-      reply
+      reply: FastifyReply
     ) => {
       try {
         return await roadmapController.updateAction(request.body);
@@ -374,9 +384,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Params: DeleteActionInput }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.deleteAction(request.params.id),
     errorHandler: (error, request, reply) => {
       reply.log.error(error);
@@ -398,9 +409,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Body: CreateResourceInput }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.createResource(request.body),
     errorHandler: (error, request, reply) => {
       reply.log.error(error);
@@ -422,9 +434,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Body: UpdateResourceInput }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.updateResource(request.body),
     errorHandler: (error, request, reply) => {
       reply.log.error(error);
@@ -446,9 +459,10 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
         500: BaseReponseErrorSchema,
       },
     },
+    preHandler: [authMiddleware],
     handler: async (
       request: FastifyRequest<{ Params: DeleteResourceInput }>,
-      reply
+      reply: FastifyReply
     ) => roadmapController.deleteResource(request.params.id),
   });
 
