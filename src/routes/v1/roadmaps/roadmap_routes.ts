@@ -87,6 +87,7 @@ import {
 } from "./dto/upload_local_roadmap.input";
 import { UploadLocalRoadmapResponseSchema } from "./dto/upload_local_roadmap.response";
 import UserService from "../users/user_service";
+import { DeleteRoadmapInput, DeleteRoadmapInputSchema } from "./dto/delete_roadmap.input";
 
 async function roadmapRoutes(fastify: FastifyInstance, opts: any) {
   const geminiKey = fastify.getEnvs<Env>().GOOGLE_GEMINI_API_KEY;
@@ -210,6 +211,28 @@ async function roadmapPrivateRoutes(fastify: FastifyInstance, opts: any) {
       })
     }
   });
+
+  fastify.delete('/', {
+    schema: {
+      description: "Delete roadmap",
+      tags: ["roadmap"],
+      body: DeleteRoadmapInputSchema,
+      response: {
+        200: NoDataResponseSchema,
+        400: BaseReponseErrorSchema,
+        500: BaseReponseErrorSchema,
+      }
+    },
+    preHandler: [authMiddleware],
+    handler: async (request: FastifyRequest<{ Body: DeleteRoadmapInput }>, reply: FastifyReply) => roadmapController.deleteRoadmap(request.body, request.jwtPayload.id,),
+    errorHandler: (error, request, reply) => {
+      reply.log.error(error);
+      return reply.status(500).send({
+        message: "Internal server error",
+        error: error,
+      })
+    }
+  })
 
   fastify.post("/addMilestone", {
     schema: {

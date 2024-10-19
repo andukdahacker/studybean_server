@@ -11,7 +11,7 @@ import { UpdateResourceInput } from "./dto/update_resource.input";
 import { UploadLocalRoadmapInput } from "./dto/upload_local_roadmap.input";
 
 class RoadmapService {
-  constructor(private readonly db: PrismaClient) {}
+  constructor(private readonly db: PrismaClient) { }
 
   async getManyRoadmaps(input: GetManyRoadmapInput, userId: string) {
     return await this.db.roadmap.findMany({
@@ -56,6 +56,14 @@ class RoadmapService {
         },
       },
     });
+  }
+
+  async deleteRoadmap(roadmapId: string) {
+    await this.db.roadmap.delete({
+      where: {
+        id: roadmapId
+      }
+    })
   }
 
   async updateRoadmapWithMilestones(

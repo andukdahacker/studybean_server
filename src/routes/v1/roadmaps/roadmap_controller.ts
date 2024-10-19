@@ -31,6 +31,7 @@ import { UpdateResourceResponse } from "./dto/update_resource.response";
 import { UploadLocalRoadmapInput } from "./dto/upload_local_roadmap.input";
 import { UploadLocalRoadmapResponse } from "./dto/upload_local_roadmap.response";
 import UserService from "../users/user_service";
+import { DeleteRoadmapInput } from "./dto/delete_roadmap.input";
 
 class RoadmapController {
   constructor(
@@ -121,6 +122,20 @@ class RoadmapController {
         error: "Cannot get roadmaps",
         message: "Internal server error",
       });
+    }
+  }
+
+  async deleteRoadmap(input: DeleteRoadmapInput, userId: string): Promise<NoDataResponse> {
+    const roadmap = await this.roadmapService.getRoadmapWithId(input.id);
+
+    if (!roadmap) throw new Error("Roadmap not found");
+
+    if (roadmap.userId != userId) throw new Error("Forbidden");
+
+    await this.roadmapService.deleteRoadmap(input.id);
+
+    return {
+      message: "Deleted roadmap successfully"
     }
   }
 
