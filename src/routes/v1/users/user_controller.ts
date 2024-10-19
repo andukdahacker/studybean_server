@@ -6,11 +6,23 @@ import { CreateUserResponse } from "./dto/create_user.response";
 import { LoginUserInput } from "./dto/login_user.input";
 import JwtService from "../../../services/jwt.service";
 import { LoginUserResponse } from "./dto/login_user.response";
+import { GetUserResponse } from "./dto/get_user.response";
 class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService
-  ) {}
+  ) { }
+
+  async getCurrentUser(id: string): Promise<GetUserResponse> {
+    const user = await this.userService.getUserById(id);
+
+    if (!user) throw new Error("User not found")
+
+    return {
+      message: "Get user successfully",
+      data: user
+    }
+  }
 
   async registerUser(
     request: FastifyRequest<{ Body: CreateUserInput }>,

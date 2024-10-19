@@ -13,6 +13,7 @@ import Env from "./env";
 import JwtService from "./services/jwt.service";
 import fastifyCron from 'fastify-cron';
 import refillCredits from "./jobs/refill_credits";
+import dayjs from "dayjs";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -162,6 +163,7 @@ const build = async () => {
           cronTime: '0 0 * * *',
           onTick: async (server) => {
             await refillCredits(server);
+            console.log(`Refilled credits at ${dayjs().toISOString()}`)
           }
         }
       ]
