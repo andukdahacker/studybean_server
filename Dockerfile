@@ -1,5 +1,7 @@
 FROM node:lts-alpine as build
 
+RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
+
 WORKDIR /app
 
 COPY package*.json ./
