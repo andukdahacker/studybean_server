@@ -1,17 +1,17 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import { CreateRoadmapInput } from "./dto/create_roadmap.input";
+import { PrismaClient } from "@prisma/client";
 import { GenerateMilestonesResponse } from "../../../services/google_gemini.service";
-import { GetManyRoadmapInput } from "./dto/get_many_roadmap.input";
 import { AddMilestoneInput } from "./dto/add_milestone.input";
-import { UpdateActionInput } from "./dto/update_action.input";
-import { UpdateMilestoneInput } from "./dto/update_milestone.input";
 import { CreateActionInput } from "./dto/create_action.input";
 import { CreateResourceInput } from "./dto/create_resource.input";
+import { CreateRoadmapInput } from "./dto/create_roadmap.input";
+import { GetManyRoadmapInput } from "./dto/get_many_roadmap.input";
+import { UpdateActionInput } from "./dto/update_action.input";
+import { UpdateMilestoneInput } from "./dto/update_milestone.input";
 import { UpdateResourceInput } from "./dto/update_resource.input";
 import { UploadLocalRoadmapInput } from "./dto/upload_local_roadmap.input";
 
 class RoadmapService {
-  constructor(private readonly db: PrismaClient) { }
+  constructor(private readonly db: PrismaClient) {}
 
   async getManyRoadmaps(input: GetManyRoadmapInput, userId: string) {
     return await this.db.roadmap.findMany({
@@ -61,14 +61,14 @@ class RoadmapService {
   async deleteRoadmap(roadmapId: string) {
     await this.db.roadmap.delete({
       where: {
-        id: roadmapId
-      }
-    })
+        id: roadmapId,
+      },
+    });
   }
 
   async updateRoadmapWithMilestones(
     roadmapId: string,
-    response: GenerateMilestonesResponse
+    response: GenerateMilestonesResponse,
   ) {
     const milestones = response.milestones.map(async (milestone) => {
       const milestones = await this.db.milestone.create({
@@ -130,8 +130,6 @@ class RoadmapService {
           },
         },
         goal: input.goal,
-        duration: input.duration,
-        durationUnit: input.durationUnit,
         user: {
           connect: {
             id: userId,
@@ -275,6 +273,14 @@ class RoadmapService {
     });
   }
 
+  async getResource(id: string) {
+    return await this.db.actionResource.findUnique({
+      where: {
+        id,
+      },
+    });
+  }
+
   async createResource(input: CreateResourceInput) {
     const resource = await this.db.actionResource.create({
       data: {
@@ -308,7 +314,7 @@ class RoadmapService {
   }
 
   async deleteResource(id: string) {
-    await this.db.actionResource.delete({
+    return await this.db.actionResource.delete({
       where: {
         id,
       },
@@ -329,8 +335,6 @@ class RoadmapService {
               },
             },
           },
-          duration: roadmap.duration,
-          durationUnit: roadmap.durationUnit,
           goal: roadmap.goal,
           user: {
             connect: {

@@ -1,26 +1,26 @@
 import { FastifyInstance, FastifyRequest } from "fastify";
-import SubjectController from "./subject_controller";
-import SubjectService from "./subject_service";
-import {
-  GetManySubjectInput,
-  GetManySubjectInputSchema,
-} from "./dto/get_many_subject.input";
-import { GetManySubjectResponseSchema } from "./dto/get_many_subject.response";
-import { BaseReponseErrorSchema } from "../../../types/base_response";
+import { BaseResponseErrorSchema } from "../../../types/base_response";
 import {
   CreateSubjectInput,
   CreateSubjectInputSchema,
 } from "./dto/create_subject.input";
 import { CreateSubjectResponseSchema } from "./dto/create_subject.response";
 import {
+  GetManySubjectInput,
+  GetManySubjectInputSchema,
+} from "./dto/get_many_subject.input";
+import { GetManySubjectResponseSchema } from "./dto/get_many_subject.response";
+import {
   GetSubjectInput,
   GetSubjectInputSchema,
 } from "./dto/get_subject.input";
 import { GetSubjectResponseSchema } from "./dto/get_subject.response";
+import SubjectController from "./subject_controller";
+import SubjectService from "./subject_service";
 
 async function subjectRoutes(fastify: FastifyInstance, opts: any) {
   const subjectController = new SubjectController(
-    new SubjectService(fastify.db)
+    new SubjectService(fastify.db),
   );
 
   fastify.post("/", {
@@ -30,8 +30,8 @@ async function subjectRoutes(fastify: FastifyInstance, opts: any) {
       body: CreateSubjectInputSchema,
       response: {
         200: CreateSubjectResponseSchema,
-        400: BaseReponseErrorSchema,
-        500: BaseReponseErrorSchema,
+        400: BaseResponseErrorSchema,
+        500: BaseResponseErrorSchema,
       },
     },
     handler: (request: FastifyRequest<{ Body: CreateSubjectInput }>, reply) =>
@@ -45,8 +45,8 @@ async function subjectRoutes(fastify: FastifyInstance, opts: any) {
       params: GetSubjectInputSchema,
       response: {
         200: GetSubjectResponseSchema,
-        400: BaseReponseErrorSchema,
-        500: BaseReponseErrorSchema,
+        400: BaseResponseErrorSchema,
+        500: BaseResponseErrorSchema,
       },
     },
     handler: (request: FastifyRequest<{ Params: GetSubjectInput }>, reply) =>
@@ -60,13 +60,13 @@ async function subjectRoutes(fastify: FastifyInstance, opts: any) {
       querystring: GetManySubjectInputSchema,
       response: {
         200: GetManySubjectResponseSchema,
-        400: BaseReponseErrorSchema,
-        500: BaseReponseErrorSchema,
+        400: BaseResponseErrorSchema,
+        500: BaseResponseErrorSchema,
       },
     },
     handler: (
       request: FastifyRequest<{ Querystring: GetManySubjectInput }>,
-      reply
+      reply,
     ) => subjectController.getSubjectList(request, reply),
   });
 }

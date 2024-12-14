@@ -1,37 +1,40 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import RoadmapService from "./roadmap_service";
-import { CreateRoadmapInput } from "./dto/create_roadmap.input";
-import { CreateRoadmapResponse } from "./dto/create_roadmap.response";
-import SubjectService from "../subjects/subject_service";
-import { CreateRoadmapWithAiResponse } from "./dto/create_roadmap_with_ai.response";
 import GoogleGeminiService, {
   GenerateMilestonesInput,
   GenerateMilestonesResponse,
 } from "../../../services/google_gemini.service";
-import { GenerateMilestonesWithAIResponse } from "./dto/generate_milestone_with_ai.response";
-import { GetManyRoadmapInput } from "./dto/get_many_roadmap.input";
-import { GetManyRoadmapResponse } from "./dto/get_many_roadmap.response";
-import { GetRoadmapInput } from "./dto/get_roadmap.input";
-import { GetRoadmapResponse } from "./dto/get_roadmap.response";
+import S3Service from "../../../services/s3_service";
+import { NoDataResponse } from "../../../types/base_response";
+import SubjectService from "../subjects/subject_service";
+import UserService from "../users/user_service";
 import { AddMilestoneInput } from "./dto/add_milestone.input";
 import { AddMilestoneResponse } from "./dto/add_milestone.response";
-import { GetMilestoneResponse } from "./dto/get_milestone.response";
-import { NoDataResponse } from "../../../types/base_response";
-import { UpdateActionInput } from "./dto/update_action.input";
-import { UpdateActionResponse } from "./dto/update_action.response";
-import { UpdateMilestoneInput } from "./dto/update_milestone.input";
-import { UpdateMilestoneResponse } from "./dto/update_milestone.response";
-import { GetActionResponse } from "./dto/get_action.response";
 import { CreateActionInput } from "./dto/create_action.input";
 import { CreateActionResponse } from "./dto/create_action.response";
 import { CreateResourceInput } from "./dto/create_resource.input";
 import { CreateResourceResponse } from "./dto/create_resource.response";
+import { CreateRoadmapInput } from "./dto/create_roadmap.input";
+import { CreateRoadmapResponse } from "./dto/create_roadmap.response";
+import { CreateRoadmapWithAiResponse } from "./dto/create_roadmap_with_ai.response";
+import { DeleteRoadmapInput } from "./dto/delete_roadmap.input";
+import { GenerateMilestonesWithAIResponse } from "./dto/generate_milestone_with_ai.response";
+import { GetActionResponse } from "./dto/get_action.response";
+import { GetManyRoadmapInput } from "./dto/get_many_roadmap.input";
+import { GetManyRoadmapResponse } from "./dto/get_many_roadmap.response";
+import { GetMilestoneResponse } from "./dto/get_milestone.response";
+import { GetRoadmapInput } from "./dto/get_roadmap.input";
+import { GetRoadmapResponse } from "./dto/get_roadmap.response";
+import { UpdateActionInput } from "./dto/update_action.input";
+import { UpdateActionResponse } from "./dto/update_action.response";
+import { UpdateMilestoneInput } from "./dto/update_milestone.input";
+import { UpdateMilestoneResponse } from "./dto/update_milestone.response";
 import { UpdateResourceInput } from "./dto/update_resource.input";
 import { UpdateResourceResponse } from "./dto/update_resource.response";
 import { UploadLocalRoadmapInput } from "./dto/upload_local_roadmap.input";
 import { UploadLocalRoadmapResponse } from "./dto/upload_local_roadmap.response";
-import UserService from "../users/user_service";
-import { DeleteRoadmapInput } from "./dto/delete_roadmap.input";
+import { UploadResourceFileInput } from "./dto/upload_resource_file.input";
+import { UploadResourceFileResponse } from "./dto/upload_resource_file.response";
+import RoadmapService from "./roadmap_service";
 
 class RoadmapController {
   constructor(
@@ -39,15 +42,58 @@ class RoadmapController {
     private geminiService: GoogleGeminiService,
     private subjectService: SubjectService,
     private userService: UserService,
-  ) { }
+    private s3Service: S3Service,
+  ) {}
+
+  async uploadResourceFile(
+    file: any,
+    data: UploadResourceFileInput,
+    bucketName: string,
+  ): Promise<UploadResourceFileResponse> {
+    const url = await this.s3Service.uploadFile({
+      bucketName,
+      body: Buffer.from(file),
+      fileName: data.fileName,
+    });
+
+    const resource = await this.roadmapService.createResource({
+      actionId: data.actionId,
+      description: data.description,
+      title: data.title,
+      url: url,
+    });
+
+    return {
+      message: "Upload file successfully",
+      data: resource,
+    };
+  }
+
+  async deleteResourceFile(resourceId: string, bucketName: string) {
+    const resource = await this.roadmapService.getResource(resourceId);
+
+    if (!resource) {
+      throw new Error("Cannot get resource");
+    }
+
+    const s3Url = resource.url;
+
+    const key = s3Url.split("/").pop();
+
+    if (!key) {
+      throw new Error("Cannot get key");
+    }
+
+    await this.s3Service.deleteFile({ bucketName, key });
+  }
 
   async getRoadmap(
     request: FastifyRequest<{ Params: GetRoadmapInput }>,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<GetRoadmapResponse> {
     try {
       const roadmap = await this.roadmapService.getRoadmapWithId(
-        request.params.id
+        request.params.id,
       );
 
       if (!roadmap) {
@@ -72,12 +118,12 @@ class RoadmapController {
 
   async getRoadmapList(
     request: FastifyRequest<{ Querystring: GetManyRoadmapInput }>,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<GetManyRoadmapResponse> {
     try {
       const roadmaps = await this.roadmapService.getManyRoadmaps(
         request.query,
-        request.jwtPayload.id
+        request.jwtPayload.id,
       );
 
       if (roadmaps.length < request.query.take) {
@@ -96,7 +142,7 @@ class RoadmapController {
           ...request.query,
           cursor,
         },
-        request.jwtPayload.id
+        request.jwtPayload.id,
       );
 
       if (nextCall.length === 0) {
@@ -125,7 +171,10 @@ class RoadmapController {
     }
   }
 
-  async deleteRoadmap(input: DeleteRoadmapInput, userId: string): Promise<NoDataResponse> {
+  async deleteRoadmap(
+    input: DeleteRoadmapInput,
+    userId: string,
+  ): Promise<NoDataResponse> {
     const roadmap = await this.roadmapService.getRoadmapWithId(input.id);
 
     if (!roadmap) throw new Error("Roadmap not found");
@@ -135,8 +184,8 @@ class RoadmapController {
     await this.roadmapService.deleteRoadmap(input.id);
 
     return {
-      message: "Deleted roadmap successfully"
-    }
+      message: "Deleted roadmap successfully",
+    };
   }
 
   async generateWithAI(
@@ -146,33 +195,26 @@ class RoadmapController {
     const user = await this.userService.getUserById(userId);
 
     if (!user) {
-      throw new Error('Cannot find user');
+      throw new Error("Cannot find user");
     }
 
     if (user.credits < 1 && user.paidCredits < 1) {
-      throw new Error('Not enough credits')
+      throw new Error("Not enough credits");
     }
 
-    const roadmap = await this.roadmapService.createRoadmap(
-      input,
-      userId,
-    );
+    const roadmap = await this.roadmapService.createRoadmap(input, userId);
 
     if (!roadmap) {
-      throw new Error('Cannot create roadmap');
+      throw new Error("Cannot create roadmap");
     }
 
-    const subject = await this.subjectService.getSubject(
-      input.subjectName
-    );
+    const subject = await this.subjectService.getSubject(input.subjectName);
 
     if (!subject) {
-      throw new Error('Cannot get subject');
+      throw new Error("Cannot get subject");
     }
 
     const generatedResult = this.geminiService.generateRoadmap({
-      duration: input.duration,
-      durationUnit: input.durationUnit,
       subjectName: subject.name,
       goal: input.goal,
     });
@@ -183,36 +225,36 @@ class RoadmapController {
     ]);
 
     if (!generatedResultResponse) {
-      throw new Error('Cannot generate roadmap');
+      throw new Error("Cannot generate roadmap");
     }
 
     if (!roadmapResponse) {
-      throw new Error('Cannot generate roadmap');
+      throw new Error("Cannot generate roadmap");
     }
 
     if (!generatedResultResponse.response) {
-      throw new Error('Cannot generate roadmap');
+      throw new Error("Cannot generate roadmap");
     }
 
     const textResult = generatedResultResponse.response.text();
 
     if (!textResult) {
-      throw new Error('Cannot generate roadmap')
+      throw new Error("Cannot generate roadmap");
     }
 
     const parsedJson: GenerateMilestonesResponse = JSON.parse(textResult);
 
     await this.roadmapService.updateRoadmapWithMilestones(
       roadmapResponse.id,
-      parsedJson
+      parsedJson,
     );
 
     const roadmapUpdated = await this.roadmapService.getRoadmapWithId(
-      roadmapResponse.id
+      roadmapResponse.id,
     );
 
     if (!roadmapUpdated) {
-      throw new Error('Cannot generate roadmap')
+      throw new Error("Cannot generate roadmap");
     }
 
     await this.userService.decreaseCredits(userId);
@@ -229,12 +271,12 @@ class RoadmapController {
     request: FastifyRequest<{
       Body: CreateRoadmapInput;
     }>,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<CreateRoadmapResponse> {
     try {
       const roadmap = await this.roadmapService.createRoadmap(
         request.body,
-        request.jwtPayload.id
+        request.jwtPayload.id,
       );
 
       return {
@@ -254,12 +296,10 @@ class RoadmapController {
 
   async generateMilestonesWithAI(
     request: FastifyRequest<{ Body: GenerateMilestonesInput }>,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<GenerateMilestonesWithAIResponse> {
     try {
       const generatedResult = await this.geminiService.generateRoadmap({
-        duration: request.body.duration,
-        durationUnit: request.body.durationUnit,
         subjectName: request.body.subjectName,
         goal: request.body.goal,
       });
@@ -294,7 +334,7 @@ class RoadmapController {
     request: FastifyRequest<{
       Body: AddMilestoneInput;
     }>,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<AddMilestoneResponse> {
     try {
       const milestone = await this.roadmapService.createMilestone(request.body);
@@ -314,11 +354,11 @@ class RoadmapController {
 
   async getMilestone(
     request: FastifyRequest<{ Params: { id: string } }>,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<GetMilestoneResponse> {
     try {
       const milestone = await this.roadmapService.getMilestoneById(
-        request.params.id
+        request.params.id,
       );
 
       if (!milestone) {
@@ -343,7 +383,7 @@ class RoadmapController {
 
   async deleteMilestone(
     request: FastifyRequest<{ Params: { id: string } }>,
-    reply: FastifyReply
+    reply: FastifyReply,
   ): Promise<NoDataResponse> {
     try {
       await this.roadmapService.deleteMilestone(request.params.id);
@@ -362,7 +402,7 @@ class RoadmapController {
   }
 
   async updateMilestone(
-    input: UpdateMilestoneInput
+    input: UpdateMilestoneInput,
   ): Promise<UpdateMilestoneResponse> {
     const milestone = await this.roadmapService.updateMilestone(input);
 
@@ -412,7 +452,7 @@ class RoadmapController {
   }
 
   async createResource(
-    input: CreateResourceInput
+    input: CreateResourceInput,
   ): Promise<CreateResourceResponse> {
     const resource = await this.roadmapService.createResource(input);
 
@@ -423,7 +463,7 @@ class RoadmapController {
   }
 
   async updateResource(
-    input: UpdateResourceInput
+    input: UpdateResourceInput,
   ): Promise<UpdateResourceResponse> {
     const resource = await this.roadmapService.updateResource(input);
 
@@ -433,7 +473,20 @@ class RoadmapController {
     };
   }
 
-  async deleteResource(id: string): Promise<NoDataResponse> {
+  async deleteResource(
+    id: string,
+    cloudFrontDomain: string,
+    bucketName: string,
+  ): Promise<NoDataResponse> {
+    const resource = await this.roadmapService.getResource(id);
+
+    if (!resource) throw new Error("Cannot get resource");
+
+    if (resource.url.startsWith(cloudFrontDomain)) {
+      const key = resource.url.substring(cloudFrontDomain.length + 1);
+      await this.s3Service.deleteFile({ key, bucketName });
+    }
+
     await this.roadmapService.deleteResource(id);
 
     return {
@@ -443,7 +496,7 @@ class RoadmapController {
 
   async uploadLocalRoadmap(
     input: UploadLocalRoadmapInput,
-    userId: string
+    userId: string,
   ): Promise<UploadLocalRoadmapResponse> {
     const roadmap = await this.roadmapService.uploadLocalRoadmap(input, userId);
 

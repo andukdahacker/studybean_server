@@ -1,19 +1,17 @@
-import Fastify, { FastifyInstance } from "fastify";
-import { Server, IncomingMessage, ServerResponse } from "http";
 import cors from "@fastify/cors";
 import fastifyEnv from "@fastify/env";
 import helmet from "@fastify/helmet";
+import middie from "@fastify/middie";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
-import v1Routes from "./routes/v1/v1_routes";
-import middie from "@fastify/middie";
-import prismaPlugin from "./plugins/prisma_plugin";
-import firebasePlugin from "./plugins/firebase_plugin";
+import Fastify, { FastifyInstance } from "fastify";
+import { IncomingMessage, Server, ServerResponse } from "http";
 import Env from "./env";
+import firebasePlugin from "./plugins/firebase_plugin";
+import prismaPlugin from "./plugins/prisma_plugin";
+import s3_plugin from "./plugins/s3_plugin";
+import v1Routes from "./routes/v1/v1_routes";
 import JwtService from "./services/jwt.service";
-import fastifyCron from 'fastify-cron';
-import refillCredits from "./jobs/refill_credits";
-import dayjs from "dayjs";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -60,6 +58,21 @@ const build = async () => {
           FIREBASE_PRIVATE_KEY: {
             type: "string",
           },
+          S3_ACCESS_KEY: {
+            type: "string",
+          },
+          S3_SECRET_KEY: {
+            type: "string",
+          },
+          S3_REGION: {
+            type: "string",
+          },
+          S3_BUCKET_NAME: {
+            type: "string",
+          },
+          S3_CLOUDFRONT_DOMAIN: {
+            type: "string",
+          },
         },
         required: [
           "NODE_ENV",
@@ -70,6 +83,11 @@ const build = async () => {
           "FIREBASE_PROJECT_ID",
           "FIREBASE_CLIENT_EMAIL",
           "FIREBASE_PRIVATE_KEY",
+          "S3_ACCESS_KEY",
+          "S3_SECRET_KEY",
+          "S3_REGION",
+          "S3_BUCKET_NAME",
+          "S3_CLOUDFRONT_DOMAIN",
         ],
       },
     });
@@ -117,10 +135,10 @@ const build = async () => {
         deepLinking: false,
       },
       uiHooks: {
-        onRequest: function(request, reply, next) {
+        onRequest: function (request, reply, next) {
           next();
         },
-        preHandler: function(request, reply, next) {
+        preHandler: function (request, reply, next) {
           next();
         },
       },
@@ -148,6 +166,7 @@ const build = async () => {
 
     app.register(prismaPlugin);
 
+    app.register(s3_plugin);
     app.addHook("onRequest", async (request, _reply) => {
       request.jwtService = new JwtService(env.JWT_SECRET);
     });
@@ -157,17 +176,26 @@ const build = async () => {
       prefix: "/api/v1",
     });
 
-    app.register(fastifyCron, {
-      jobs: [
-        {
-          cronTime: '0 0 * * *',
-          onTick: async (server) => {
-            await refillCredits(server);
-            console.log(`Refilled credits at ${dayjs().toISOString()}`)
-          }
-        }
-      ]
-    })
+    // app.register(fastifyCron, {
+    //   jobs: [
+    //     {
+    //       cronTime: "0 0 * * *",
+    //       onTick: async (server) => {
+    //         await refillCredits(server);
+    //         console.log(`Refilled credits at ${dayjs().toISOString()}`);
+    //       },
+    //     },
+    //   ],
+    // });
+
+    app.setErrorHandler((error, request, reply) => {
+      request.log.error(error);
+      reply.log.error(error);
+      return reply.status(500).send({
+        error,
+        message: "Internal server error",
+      });
+    });
 
     return app;
   } catch (err) {
@@ -184,9 +212,6 @@ const start = async (app: FastifyInstance) => {
       port: env.PORT,
       host: isProd ? "0.0.0.0" : "localhost",
     });
-
-    app.cron.startAllJobs();
-
   } catch (err) {
     app.log.error(err);
     process.exit(1);

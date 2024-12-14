@@ -24,8 +24,6 @@ export type GeneratedAction = Static<typeof GeneratedActionSchema>;
 
 export const GenerateMilestonesInputSchema = Type.Object({
   subjectName: Type.String(),
-  duration: Type.Number(),
-  durationUnit: DurationUnitSchema,
   goal: Type.String(),
 });
 
@@ -39,7 +37,7 @@ export const GenerateMilestonesResponseSchema = Type.Object({
       index: Type.Number(),
       name: Type.String(),
       actions: Type.Array(GeneratedActionSchema),
-    })
+    }),
   ),
 });
 
@@ -113,10 +111,8 @@ class GoogleGeminiService {
       input.subjectName
     }  in JSON format. Each milestone should have a name and a list of actions. Each actions should have recommendations for learning resources. The learner want to achieve the goal: ${
       input.goal
-    }. The learner want to finish this roadmap within ${input.duration} ${
-      input.durationUnit
     }. The duration unit should be one of "DAY", "WEEK", "MONTH", "YEAR".   JSON Format should be as follow: ${JSON.stringify(
-      jsonFormat
+      jsonFormat,
     )}`;
 
     console.log("prompt", prompt);
