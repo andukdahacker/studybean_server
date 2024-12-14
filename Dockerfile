@@ -17,6 +17,8 @@ RUN npm run build
 
 FROM node:lts-alpine as production
 
+RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
+
 ARG PORT
 
 WORKDIR /app
