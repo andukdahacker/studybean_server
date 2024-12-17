@@ -532,6 +532,8 @@ async function roadmapRoutes(fastify: FastifyInstance, opts: any) {
 
   fastify.register(fastifyMultipart, {
     attachFieldsToBody: "keyValues",
+    limits: { fileSize: 1024 * 1024 * 25 },
+    throwFileSizeLimit: true,
   });
 
   fastify.post("/resource/uploadFile", {
