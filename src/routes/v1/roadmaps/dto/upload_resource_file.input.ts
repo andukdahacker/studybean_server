@@ -1,4 +1,5 @@
 import { Static, Type } from "@sinclair/typebox";
+import { ResourceTypeSchema } from "./action_resource.schema";
 
 export const UploadResourceFileInputSchema = Type.Object({
   file: Type.Any(),
@@ -6,6 +7,7 @@ export const UploadResourceFileInputSchema = Type.Object({
   title: Type.String(),
   description: Type.String(),
   actionId: Type.String(),
+  resourceType: ResourceTypeSchema,
 });
 
 export type UploadResourceFileInput = Static<

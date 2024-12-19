@@ -287,6 +287,7 @@ class RoadmapService {
         title: input.title,
         description: input.description,
         url: input.url,
+        resourceType: input.resourceType,
         action: {
           connect: {
             id: input.actionId,
@@ -306,7 +307,6 @@ class RoadmapService {
       data: {
         title: input.title ? input.title : undefined,
         description: input.description ? input.description : undefined,
-        url: input.url ? input.url : undefined,
       },
     });
 

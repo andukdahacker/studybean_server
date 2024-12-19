@@ -61,6 +61,7 @@ class RoadmapController {
       description: data.description,
       title: data.title,
       url: url,
+      resourceType: data.resourceType,
     });
 
     return {
