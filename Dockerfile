@@ -15,8 +15,6 @@ COPY ./src ./src
 
 RUN npm run build
 
-RUN npm run migrate
-
 FROM node:lts-alpine as production
 
 RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
