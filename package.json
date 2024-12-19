@@ -7,7 +7,7 @@
     "dev": "nodemon ./src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "prestart": "npx prisma migrate deploy && npx ts-node prisma/migrations/20241219131621_add_resource_type/data-migration.ts",
+    "prestart": "npx prisma migrate deploy && npx ts-node /app/prisma/migrations/20241219131621_add_resource_type/data-migration.ts",
     "start": "node ./build/index.js"
   },
   "keywords": [],
