@@ -4,100 +4,104 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import Env from "../../../env";
 import authMiddleware from "../../../middlewares/auth.middleware";
 import GoogleGeminiService, {
-  GenerateMilestonesInput,
-  GenerateMilestonesInputSchema,
+    GenerateMilestonesInput,
+    GenerateMilestonesInputSchema,
 } from "../../../services/google_gemini.service";
 import S3Service from "../../../services/s3_service";
 import {
-  BaseResponseErrorSchema,
-  NoDataResponseSchema,
+    BaseResponseErrorSchema,
+    NoDataResponseSchema,
 } from "../../../types/base_response";
 import SubjectService from "../subjects/subject_service";
 import UserService from "../users/user_service";
 import {
-  AddMilestoneInput,
-  AddMilestoneInputSchema,
+    AddMilestoneInput,
+    AddMilestoneInputSchema,
 } from "./dto/add_milestone.input";
 import { AddMilestoneResponseSchema } from "./dto/add_milestone.response";
 import {
-  CreateActionInput,
-  CreateActionInputSchema,
+    CreateActionInput,
+    CreateActionInputSchema,
 } from "./dto/create_action.input";
 import { CreateActionResponseSchema } from "./dto/create_action.response";
 import {
-  CreateResourceInput,
-  CreateResourceInputSchema,
+    CreateResourceInput,
+    CreateResourceInputSchema,
 } from "./dto/create_resource.input";
 import { CreateResourceResponseSchema } from "./dto/create_resource.response";
 import {
-  CreateRoadmapInput,
-  CreateRoadmapInputSchema,
+    CreateRoadmapInput,
+    CreateRoadmapInputSchema,
 } from "./dto/create_roadmap.input";
 import { CreateRoadmapResponseSchema } from "./dto/create_roadmap.response";
 import { CreateRoadmapWithAiResponseSchema } from "./dto/create_roadmap_with_ai.response";
 import {
-  DeleteActionInput,
-  DeleteActionInputSchema,
+    DeleteActionInput,
+    DeleteActionInputSchema,
 } from "./dto/delete_action.input";
 import {
-  DeleteMilestoneInput,
-  DeleteMilestoneInputSchema,
+    DeleteMilestoneInput,
+    DeleteMilestoneInputSchema,
 } from "./dto/delete_milestone.input";
 import {
-  DeleteResourceInput,
-  DeleteResourceInputSchema,
+    DeleteResourceInput,
+    DeleteResourceInputSchema,
 } from "./dto/delete_resource.input";
 import {
-  DeleteResourceFileInput,
-  DeleteResourceFileInputSchema,
+    DeleteResourceFileInput,
+    DeleteResourceFileInputSchema,
 } from "./dto/delete_resource_file.input";
 import {
-  DeleteRoadmapInput,
-  DeleteRoadmapInputSchema,
+    DeleteRoadmapInput,
+    DeleteRoadmapInputSchema,
 } from "./dto/delete_roadmap.input";
 import { GenerateMilestonesWithAIResponseSchema } from "./dto/generate_milestone_with_ai.response";
 import { GetActionResponseSchema } from "./dto/get_action.response";
 import {
-  GetManyRoadmapInput,
-  GetManyRoadmapInputSchema,
+    GetManyRoadmapInput,
+    GetManyRoadmapInputSchema,
 } from "./dto/get_many_roadmap.input";
 import { GetManyRoadmapResponseSchema } from "./dto/get_many_roadmap.response";
 import {
-  GetMilestoneInput,
-  GetMilestoneInputSchema,
+    GetMilestoneInput,
+    GetMilestoneInputSchema,
 } from "./dto/get_milestone.input";
 import { GetMilestoneResponseSchema } from "./dto/get_milestone.response";
+import { GetResourceInput, GetResourceInputSchema } from "./dto/get_resource.input";
+import { GetResourceResponseSchema } from "./dto/get_resource.response";
 import {
-  GetRoadmapInput,
-  GetRoadmapInputSchema,
+    GetRoadmapInput,
+    GetRoadmapInputSchema,
 } from "./dto/get_roadmap.input";
 import { GetRoadmapResponseSchema } from "./dto/get_roadmap.response";
 import {
-  UpdateActionInput,
-  UpdateActionInputSchema,
+    UpdateActionInput,
+    UpdateActionInputSchema,
 } from "./dto/update_action.input";
 import { UpdateActionResponseSchema } from "./dto/update_action.response";
 import {
-  UpdateMilestoneInput,
-  UpdateMilestoneInputSchema,
+    UpdateMilestoneInput,
+    UpdateMilestoneInputSchema,
 } from "./dto/update_milestone.input";
 import {
-  UpdateMilestoneResponse,
-  UpdateMilestoneResponseSchema,
+    UpdateMilestoneResponse,
+    UpdateMilestoneResponseSchema,
 } from "./dto/update_milestone.response";
 import {
-  UpdateResourceInput,
-  UpdateResourceInputSchema,
+    UpdateResourceInput,
+    UpdateResourceInputSchema,
 } from "./dto/update_resource.input";
 import { UpdateResourceResponseSchema } from "./dto/update_resource.response";
+import { UpdateResourceNotesInput, UpdateResourceNotesInputSchema } from "./dto/update_resource_notes.input";
+import { UpdateResourceNotesResponseSchema } from "./dto/update_resource_notes.response";
 import {
-  UploadLocalRoadmapInput,
-  UploadLocalRoadmapInputSchema,
+    UploadLocalRoadmapInput,
+    UploadLocalRoadmapInputSchema,
 } from "./dto/upload_local_roadmap.input";
 import { UploadLocalRoadmapResponseSchema } from "./dto/upload_local_roadmap.response";
 import {
-  UploadResourceFileInput,
-  UploadResourceFileInputSchema,
+    UploadResourceFileInput,
+    UploadResourceFileInputSchema,
 } from "./dto/upload_resource_file.input";
 import { UploadResourceFileResponseSchema } from "./dto/upload_resource_file.response";
 import RoadmapController from "./roadmap_controller";
@@ -530,6 +534,31 @@ async function roadmapRoutes(fastify: FastifyInstance, opts: any) {
     },
   });
 
+  fastify.get('/resource/:id', {
+    schema: {
+      description: "Get resource",
+      tags: ["roadmaps"],
+      params: GetResourceInputSchema,
+      response: {
+        200: GetResourceResponseSchema,
+        400: BaseResponseErrorSchema,
+        500: BaseResponseErrorSchema,
+      },
+    },
+    preHandler: [authMiddleware],
+    handler: async (
+      request: FastifyRequest<{ Params: GetResourceInput }>,
+      reply: FastifyReply,
+    ) => roadmapController.getResource(request.params.id),
+    errorHandler: (error, request, reply) => {
+      reply.log.error(error);
+      return reply.status(500).send({
+        error: "Get resource failed",
+        message: "Internal server error",
+      });
+    },
+  });
+
   fastify.register(fastifyMultipart, {
     attachFieldsToBody: "keyValues",
     limits: { fileSize: 1024 * 1024 * 25 },
@@ -596,6 +625,33 @@ async function roadmapRoutes(fastify: FastifyInstance, opts: any) {
         error: error,
         message: "Internal server error",
         tags: ["roadmaps"],
+      });
+    },
+  });
+
+  fastify.put("/resource/notes", {
+    schema: {
+      description: "Update resource notes",
+      tags: ["roadmaps"],
+      body: UpdateResourceNotesInputSchema,
+      response: {
+        200: UpdateResourceNotesResponseSchema,
+        500: BaseResponseErrorSchema,
+      },
+    },
+    preHandler: [authMiddleware],
+    handler: async (
+      request: FastifyRequest<{ Body: UpdateResourceNotesInput }>,
+      _reply: FastifyReply,
+    ) =>
+      await roadmapController.updateResourceNotes(
+        request.body,
+      ),
+    errorHandler: (error, _req, reply) => {
+      reply.log.error(error);
+      return reply.status(500).send({
+        error: error,
+        message: "Internal server error",
       });
     },
   });

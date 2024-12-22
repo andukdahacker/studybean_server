@@ -1,7 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import GoogleGeminiService, {
-  GenerateMilestonesInput,
-  GenerateMilestonesResponse,
+    GenerateMilestonesInput,
+    GenerateMilestonesResponse,
 } from "../../../services/google_gemini.service";
 import S3Service from "../../../services/s3_service";
 import { NoDataResponse } from "../../../types/base_response";
@@ -22,6 +22,7 @@ import { GetActionResponse } from "./dto/get_action.response";
 import { GetManyRoadmapInput } from "./dto/get_many_roadmap.input";
 import { GetManyRoadmapResponse } from "./dto/get_many_roadmap.response";
 import { GetMilestoneResponse } from "./dto/get_milestone.response";
+import { GetResourceResponse } from "./dto/get_resource.response";
 import { GetRoadmapInput } from "./dto/get_roadmap.input";
 import { GetRoadmapResponse } from "./dto/get_roadmap.response";
 import { UpdateActionInput } from "./dto/update_action.input";
@@ -30,6 +31,8 @@ import { UpdateMilestoneInput } from "./dto/update_milestone.input";
 import { UpdateMilestoneResponse } from "./dto/update_milestone.response";
 import { UpdateResourceInput } from "./dto/update_resource.input";
 import { UpdateResourceResponse } from "./dto/update_resource.response";
+import { UpdateResourceNotesInput } from "./dto/update_resource_notes.input";
+import { UpdateResourceNotesResponse } from "./dto/update_resource_notes.response";
 import { UploadLocalRoadmapInput } from "./dto/upload_local_roadmap.input";
 import { UploadLocalRoadmapResponse } from "./dto/upload_local_roadmap.response";
 import { UploadResourceFileInput } from "./dto/upload_resource_file.input";
@@ -44,6 +47,17 @@ class RoadmapController {
     private userService: UserService,
     private s3Service: S3Service,
   ) {}
+
+  async updateResourceNotes(
+    input: UpdateResourceNotesInput,
+  ): Promise<UpdateResourceNotesResponse> {
+    const actionResource = await this.roadmapService.updateResourceNotes(input);
+
+    return {
+      message: "Resource notes updated successfully",
+      data: actionResource,
+    };
+  }
 
   async uploadResourceFile(
     file: any,
@@ -449,6 +463,19 @@ class RoadmapController {
 
     return {
       message: "Action deleted successfully",
+    };
+  }
+
+  async getResource(id: string): Promise<GetResourceResponse> {
+    const resource = await this.roadmapService.getResource(id);
+
+    if (!resource) {
+      throw new Error("Resource not found");
+    }
+
+    return {
+      data: resource,
+      message: "Resource retrieved successfully",
     };
   }
 

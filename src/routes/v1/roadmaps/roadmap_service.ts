@@ -8,10 +8,23 @@ import { GetManyRoadmapInput } from "./dto/get_many_roadmap.input";
 import { UpdateActionInput } from "./dto/update_action.input";
 import { UpdateMilestoneInput } from "./dto/update_milestone.input";
 import { UpdateResourceInput } from "./dto/update_resource.input";
+import { UpdateResourceNotesInput } from "./dto/update_resource_notes.input";
 import { UploadLocalRoadmapInput } from "./dto/upload_local_roadmap.input";
 
 class RoadmapService {
   constructor(private readonly db: PrismaClient) {}
+
+  async updateResourceNotes(input: UpdateResourceNotesInput) {
+    const { resourceId, notes } = input;
+    return await this.db.actionResource.update({
+      where: {
+        id: resourceId,
+      },
+      data: {
+        notes: notes,
+      },
+    });
+  }
 
   async getManyRoadmaps(input: GetManyRoadmapInput, userId: string) {
     return await this.db.roadmap.findMany({

@@ -16,6 +16,7 @@ export const ActionResourceSchema = Type.Object({
   description: Nullable(Type.String()),
   url: Type.String(),
   actionId: Type.String(),
+  notes: Nullable(Type.String()),
   resourceType: ResourceTypeSchema,
 });
 

@@ -7,7 +7,7 @@
     "dev": "nodemon ./src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "prestart": "npx prisma migrate deploy && npx tsx prisma/migrations/20241219131621_add_resource_type/data-migration.ts",
+    "prestart": "npx prisma migrate deploy",
     "start": "node ./build/index.js"
   },
   "keywords": [],
@@ -36,8 +36,7 @@
     "jsonwebtoken": "^9.0.2",
     "mime-types": "^2.1.35",
     "pg": "^8.13.1",
-    "uuid": "^11.0.3",
-    "tsx": "4.19.2"
+    "uuid": "^11.0.3"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
