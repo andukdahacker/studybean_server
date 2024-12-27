@@ -4,9 +4,12 @@ import helmet from "@fastify/helmet";
 import middie from "@fastify/middie";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import { CronJob } from "cron";
+import dayjs from "dayjs";
 import Fastify, { FastifyInstance } from "fastify";
 import { IncomingMessage, Server, ServerResponse } from "http";
 import Env from "./env";
+import refillCredits from "./jobs/refill_credits";
 import firebasePlugin from "./plugins/firebase_plugin";
 import prismaPlugin from "./plugins/prisma_plugin";
 import s3_plugin from "./plugins/s3_plugin";
@@ -205,15 +208,30 @@ const build = async () => {
 };
 
 const start = async (app: FastifyInstance) => {
+  const cronJob = CronJob.from({
+    cronTime: "0 0 * * *",
+    onTick: async function () {
+      await refillCredits(app);
+    },
+    onComplete: () => {
+      console.log(`Refilled credits at ${dayjs().toISOString()}`);
+    },
+    timeZone: "Asia/Singapore",
+  });
+
   try {
     const env = app.getEnvs<Env>();
     const isProd = env.NODE_ENV === "production";
+
     await app.listen({
       port: env.PORT,
       host: isProd ? "0.0.0.0" : "localhost",
     });
+
+    cronJob.start();
   } catch (err) {
     app.log.error(err);
+    cronJob.stop();
     process.exit(1);
   }
 };
