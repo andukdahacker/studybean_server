@@ -1,11 +1,13 @@
 import { GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai";
 import { Static, Type } from "@sinclair/typebox";
+import { ResourceTypeSchema } from "../routes/v1/roadmaps/dto/action_resource.schema";
 import { DurationUnitSchema } from "../routes/v1/roadmaps/dto/duration_unit.enum";
 
 export const GeneratedRecommendationSchema = Type.Object({
   title: Type.String(),
   description: Type.String(),
   url: Type.String(),
+  resourceType: ResourceTypeSchema,
 });
 
 export type GeneratedRecommendation = Static<
@@ -76,11 +78,13 @@ class GoogleGeminiService {
                   title: "Recommendation 1",
                   description: "Recommendation 1 description",
                   url: "https://example.com/recommendation-1",
+                  resourceType: "WEBSITE",
                 },
                 {
                   title: "Recommendation 2",
                   description: "Recommendation 2 description",
-                  url: "https://example.com/recommendation-2",
+                  url: "https://example.com/recommendation-2.pdf",
+                  resourceType: "PDF",
                 },
               ],
             },
@@ -93,12 +97,14 @@ class GoogleGeminiService {
                 {
                   title: "Recommendation 3",
                   description: "Recommendation 3 description",
-                  url: "https://example.com/recommendation-3",
+                  url: "https://youtube.com/embed/zfQnirRgQJo?autoplay=0",
+                  resourceType: "YOUTUBE",
                 },
                 {
                   title: "Recommendation 4",
                   description: "Recommendation 4 description",
                   url: "https://example.com/recommendation-4",
+                  resourceType: "WEBSITE",
                 },
               ],
             },
